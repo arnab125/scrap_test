@@ -5,17 +5,36 @@ import requests
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 
+
 # Function to generate random sleep time
 def random_sleep(minimum, maximum):
     time.sleep(random.uniform(minimum, maximum))
+"""
+proxy_list = []
+with open("http_proxies.txt", "r") as file:
+    for line in file:
+        proxy_list.append(line)
+print(proxy_list)
 
+proxies = {
+    "http": random.choice(proxy_list).strip(),
+}
+
+
+
+print(proxies)
+"""
 categories = []
+
+proxies = {}
+
 
 def scrap_categories_links():
     try:
         url = "https://www.amazon.com/Best-Sellers-Audible-Books-Originals/zgbs/audible/ref=zg_bs_unv_audible_1_18571910011_1"
-        headers = {'User-Agent': UserAgent().random, 'Accept-Language': 'en-US,en;q=0.5'}
+        headers = {'User-Agent': UserAgent().random, 'Accept-Language': 'en-US,en'}
         response = requests.get(url, headers=headers)
+        response.raise_for_status()  # Raise an exception for bad status codes
         random_sleep(2, 4)  # Add a random delay to simulate human behavior
         soup = BeautifulSoup(response.content, 'html.parser')
         items = soup.find_all("div",
@@ -30,9 +49,11 @@ def scrap_categories_links():
         print("Error:", e)
     return categories
 
+
 def scrape_category(url):
     try:
-        headers = {'User-Agent': UserAgent().random, 'Accept-Language': 'en-US,en;q=0.5'}
+        headers = {'User-Agent': UserAgent().random, 'Accept-Language': 'en-US,en'}
+        random_sleep(2, 4)  # Add a random delay to simulate human behavior
         response = requests.get(url, headers=headers)
         response.raise_for_status()  # Raise an exception for bad status codes
         soup = BeautifulSoup(response.content, 'html.parser')
@@ -62,6 +83,7 @@ def scrape_category(url):
 
     except Exception as e:
         print("Error:", e)
+
 
 links = scrap_categories_links()
 print(links)
