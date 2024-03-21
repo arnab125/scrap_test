@@ -1,76 +1,41 @@
 import time
 import random
 import pandas as pd
-from selenium import webdriver
+import requests
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-
-# Configure headless browser options
-options = webdriver.ChromeOptions()
-# options.add_argument("--headless")
-options.add_argument("--disable-dev-shm-usage")
-options.add_argument("--no-sandbox")
-
-# Use a random user agent to mimic different devices
-user_agent = UserAgent()
-options.add_argument(f"user-agent={user_agent.random}")
-
-proxy_server = "http://35.185.196.38:3128"
-
-# Set up proxy if necessary
-options.add_argument(f'--proxy-server={proxy_server}')
-
 
 # Function to generate random sleep time
 def random_sleep(minimum, maximum):
     time.sleep(random.uniform(minimum, maximum))
 
-
 categories = []
 
-
 def scrap_categories_links():
-    driver = webdriver.Chrome(options=options)
     try:
-        driver.get(
-            "https://www.amazon.com/Best-Sellers-Audible-Books-Originals/zgbs/audible/ref=zg_bs_unv_audible_1_18571910011_1")
+        url = "https://www.amazon.com/Best-Sellers-Audible-Books-Originals/zgbs/audible/ref=zg_bs_unv_audible_1_18571910011_1"
+        headers = {'User-Agent': UserAgent().random, 'Accept-Language': 'en-US,en;q=0.5'}
+        response = requests.get(url, headers=headers)
         random_sleep(2, 4)  # Add a random delay to simulate human behavior
-        soup = BeautifulSoup(driver.page_source, 'html.parser')
-        # print(soup.prettify())
+        soup = BeautifulSoup(response.content, 'html.parser')
         items = soup.find_all("div",
                               class_="_p13n-zg-nav-tree-all_style_zg-browse-item__1rdKf _p13n-zg-nav-tree-all_style_zg-browse-height-large__1z5B8",
                               role="treeitem")
-        # Iterate over each div element
         for item in items:
-            # Find the <a> tag within the div element
             a_tag = item.find("a")
             if a_tag:
-                # Extract and print the href attribute of the <a> tag
                 href = a_tag.get("href")
                 categories.append(f"https://www.amazon.com{href}")
     except Exception as e:
         print("Error:", e)
-    finally:
-        driver.quit()
-        return categories
+    return categories
 
-
-# Function to scrape product details from a category page
 def scrape_category(url):
-    driver = webdriver.Chrome(options=options)
     try:
-        driver.get(url)
-        WebDriverWait(driver, 10).until(
-            EC.visibility_of_element_located((By.CLASS_NAME, "_cDEzb_iveVideoWrapper_JJ34T")))
-
-        random_sleep(2, 4)  # Add a random delay to simulate human behavior
-
-        soup = BeautifulSoup(driver.page_source, 'html.parser')
-
-        # Extract product details
+        headers = {'User-Agent': UserAgent().random, 'Accept-Language': 'en-US,en;q=0.5'}
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()  # Raise an exception for bad status codes
+        soup = BeautifulSoup(response.content, 'html.parser')
         products = soup.find_all("div", class_="_cDEzb_iveVideoWrapper_JJ34T")
         data = []
         for product in products:
@@ -90,21 +55,17 @@ def scrape_category(url):
                 "img_link": img_link
             })
 
-        # Save the data to a CSV file
         df = pd.DataFrame(data)
-        df.to_csv(f"{url.split('/')[-1]}.csv", index=False)
-        print(f"Saved {len(data)} products to {url.split('/')[-1]}.csv")
+        df.to_csv(f"{url.split('/')[-5]}.csv", index=False)
+        print(f"Saved {len(data)} products to {url.split('/')[-5]}.csv")
+
 
     except Exception as e:
         print("Error:", e)
-        return []
-    finally:
-        driver.quit()
-
 
 links = scrap_categories_links()
+print(links)
 
 if len(links) > 0 or links is not None:
-    # Iterate over each category link
     for link in links:
         scrape_category(link)
